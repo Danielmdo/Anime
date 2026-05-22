@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useHistory } from "@/components/HistoryProvider";
 import type { AnimeData, VideoServer, EpisodeServers } from "@/lib/types";
@@ -27,6 +27,34 @@ export default function WatchEpisodeClient({
   const [activeServer, setActiveServer] = useState<VideoServer | null>(null);
   const [loadingServers, setLoadingServers] = useState(true);
   const [serversError, setServersError] = useState(false);
+
+  // Ref for the video container (for Fullscreen API)
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Listen for fullscreen change events
+  useEffect(() => {
+    const onFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  // Toggle fullscreen on the player container
+  const toggleFullscreen = useCallback(async () => {
+    const el = playerContainerRef.current;
+    if (!el || !document.fullscreenEnabled) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await el.requestFullscreen();
+      }
+    } catch {
+      // Fullscreen denied by user policy
+    }
+  }, []);
 
   // Fetch video servers
   const fetchServers = useCallback(async () => {
@@ -86,7 +114,7 @@ export default function WatchEpisodeClient({
 
         {/* Video Player */}
         <div className="bg-black rounded-xl overflow-hidden border border-gray-800 mb-4">
-          <div className="relative aspect-video bg-black">
+          <div ref={playerContainerRef} className="relative aspect-video bg-black">
             {loadingServers ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
@@ -143,13 +171,31 @@ export default function WatchEpisodeClient({
                 </div>
               </div>
             ) : (
-              <iframe
-                src={activeServer.code}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-                allow="autoplay; encrypted-media; fullscreen"
-                referrerPolicy="origin"
-              />
+              <>
+                <iframe
+                  src={activeServer.code}
+                  className="absolute inset-0 w-full h-full"
+                  allowFullScreen={true}
+                  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                  referrerPolicy="origin"
+                />
+                {/* Custom Fullscreen Button */}
+                <button
+                  onClick={toggleFullscreen}
+                  className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 hover:bg-black/80 text-white/70 hover:text-white opacity-60 hover:opacity-100 transition-all duration-200 backdrop-blur-sm border border-white/10"
+                  title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+                >
+                  {isFullscreen ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                    </svg>
+                  )}
+                </button>
+              </>
             )}
           </div>
         </div>
