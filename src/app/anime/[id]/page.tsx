@@ -1,5 +1,4 @@
 import { getAnimeInfo } from "@/lib/animeflv";
-import { notFound } from "next/navigation";
 import type { AnimeData } from "@/lib/types";
 import AnimeDetailClient from "./AnimeDetailClient";
 
@@ -15,10 +14,6 @@ export default async function AnimeDetailPage({ params }: PageProps) {
     anime = await getAnimeInfo(id);
   } catch (error) {
     console.error("Error fetching anime:", error);
-  }
-
-  if (!anime) {
-    notFound();
   }
 
   return <AnimeDetailClient anime={anime} animeId={id} />;

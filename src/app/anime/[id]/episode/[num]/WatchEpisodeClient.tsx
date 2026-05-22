@@ -6,7 +6,7 @@ import { useHistory } from "@/components/HistoryProvider";
 import type { AnimeData } from "@/lib/types";
 
 interface WatchEpisodeClientProps {
-  anime: AnimeData;
+  anime: AnimeData | null;
   animeId: string;
   episodeNum: string;
 }
@@ -18,7 +18,9 @@ export default function WatchEpisodeClient({
 }: WatchEpisodeClientProps) {
   const { addToHistory } = useHistory();
   const epNumber = parseInt(episodeNum);
-  const totalEps = anime.episodes || 0;
+  const totalEps = anime?.episodes || 0;
+  const animeTitle = anime?.title || animeId.replace(/-/g, " ");
+  const animeCover = anime?.cover || "";
 
   // AnimeFLV episode URL
   const animeflvUrl = `https://www3.animeflv.net/ver/${animeId}-${epNumber}`;
@@ -26,12 +28,12 @@ export default function WatchEpisodeClient({
   useEffect(() => {
     addToHistory({
       animeId,
-      animeTitle: anime.title,
-      cover: anime.cover,
+      animeTitle,
+      cover: animeCover,
       episode: epNumber,
       episodeTitle: `Episodio ${epNumber}`,
     });
-  }, [animeId, epNumber, anime.title, anime.cover, addToHistory]);
+  }, [animeId, epNumber, animeTitle, animeCover, addToHistory]);
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -46,7 +48,7 @@ export default function WatchEpisodeClient({
             href={`/anime/${animeId}`}
             className="hover:text-white transition-colors truncate max-w-[200px]"
           >
-            {anime.title}
+            {animeTitle}
           </Link>
           <span>/</span>
           <span className="text-red-400">Episodio {epNumber}</span>
@@ -55,16 +57,26 @@ export default function WatchEpisodeClient({
         {/* Watch Hero */}
         <div className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-xl overflow-hidden border border-gray-800 mb-6">
           <div className="p-6 sm:p-10 flex flex-col md:flex-row items-center gap-8">
-            {/* Cover */}
-            <div className="shrink-0 w-36 sm:w-44">
-              <div className="aspect-[3/4] rounded-xl overflow-hidden shadow-xl shadow-black/50 border border-gray-700">
-                <img
-                  src={anime.cover}
-                  alt={anime.title}
-                  className="w-full h-full object-cover"
-                />
+            {/* Cover (only if available) */}
+            {animeCover ? (
+              <div className="shrink-0 w-36 sm:w-44">
+                <div className="aspect-[3/4] rounded-xl overflow-hidden shadow-xl shadow-black/50 border border-gray-700">
+                  <img
+                    src={animeCover}
+                    alt={animeTitle}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="shrink-0 w-36 sm:w-44">
+                <div className="aspect-[3/4] rounded-xl overflow-hidden shadow-xl shadow-black/50 border border-gray-700 bg-gray-800 flex items-center justify-center">
+                  <svg className="w-12 h-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            )}
 
             {/* Info & Watch Button */}
             <div className="flex-1 text-center md:text-left">
@@ -73,7 +85,7 @@ export default function WatchEpisodeClient({
                 {totalEps > 0 && ` de ${totalEps}`}
               </span>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight mb-2">
-                {anime.title}
+                {animeTitle}
               </h1>
               <p className="text-gray-400 text-sm mb-6">
                 Este episodio se reproduce en AnimeFLV. Haz clic en el botón
@@ -112,23 +124,32 @@ export default function WatchEpisodeClient({
               <p className="text-xs text-gray-600 mt-4">
                 Se abrirá AnimeFLV en una nueva pestaña
               </p>
+
+              {!anime && (
+                <p className="text-xs text-yellow-600 mt-3">
+                  No se pudo cargar la información del anime. El enlace
+                  sigue funcionando.
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Episode Info */}
-        <div className="bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-800 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Sinopsis
-              </h2>
-              <p className="text-gray-300 text-sm leading-relaxed line-clamp-3 hover:line-clamp-none transition-all">
-                {anime.synopsis || "Sin sinopsis disponible."}
-              </p>
+        {/* Episode Info (only if available) */}
+        {anime?.synopsis && (
+          <div className="bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-800 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  Sinopsis
+                </h2>
+                <p className="text-gray-300 text-sm leading-relaxed line-clamp-3 hover:line-clamp-none transition-all">
+                  {anime.synopsis || "Sin sinopsis disponible."}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Episode Navigation */}
         <div className="flex items-center justify-between gap-4">
@@ -187,7 +208,28 @@ export default function WatchEpisodeClient({
           )}
         </div>
 
-        {/* Episode List */}
+        {/* Episode List (only if we know the total) */}
+        {!anime && (
+          <div className="mt-10 pb-12 text-center">
+            <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 max-w-lg mx-auto">
+              <p className="text-gray-400 mb-4">
+                No se pudo cargar la lista de episodios. Puedes ver este
+                episodio directamente en AnimeFLV.
+              </p>
+              <a
+                href={animeflvUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-2 rounded-lg transition-colors border border-gray-700"
+              >
+                Ir a AnimeFLV
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        )}
         {totalEps > 1 && (
           <section className="mt-10 pb-12">
             <h2 className="text-lg font-bold text-white mb-4">

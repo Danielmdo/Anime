@@ -5,7 +5,7 @@ import GenreBadge from "@/components/GenreBadge";
 import type { AnimeData } from "@/lib/types";
 
 interface AnimeDetailClientProps {
-  anime: AnimeData;
+  anime: AnimeData | null;
   animeId: string;
 }
 
@@ -13,8 +13,50 @@ export default function AnimeDetailClient({
   anime,
   animeId,
 }: AnimeDetailClientProps) {
-  const episodes = anime.episodes || 0;
+  const episodes = anime?.episodes || 0;
   const totalEpisodes = typeof episodes === "number" ? episodes : 0;
+  const animeTitle = anime?.title || animeId.replace(/-/g, " ");
+
+  // If the scraper failed, show a fallback page with a direct link
+  if (!anime) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-800 flex items-center justify-center">
+            <svg className="w-10 h-10 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-3">
+            {animeTitle}
+          </h1>
+          <p className="text-gray-400 mb-6">
+            No se pudo cargar la información del anime desde AnimeFLV.
+            Puedes intentar verlo directamente en su sitio.
+          </p>
+          <a
+            href={`https://www3.animeflv.net/anime/${animeId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-red-600/25"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Ver en AnimeFLV
+          </a>
+          <div className="mt-6">
+            <a
+              href="/"
+              className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              ← Volver al inicio
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950">
