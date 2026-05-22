@@ -2,6 +2,8 @@ import { getLatestEpisodes, getOnAir } from "@/lib/animeflv";
 import type { ChapterData, AnimeOnAirData } from "@/lib/types";
 import HomeClient from "./HomeClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   let latest: ChapterData[] = [];
   let onAir: AnimeOnAirData[] = [];
