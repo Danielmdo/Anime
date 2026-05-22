@@ -1,4 +1,4 @@
-import type { EpisodeServers } from "./types";
+import type { AnimeData, EpisodeServers } from "./types";
 
 const SCRAPER_TIMEOUT = 15000;
 
@@ -13,6 +13,143 @@ async function withTimeout<T>(
 }
 
 /**
+ * Fetch a page from AnimeFLV using cloudscraper to bypass Cloudflare.
+ */
+async function fetchPage(url: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const cloudscraper = require("cloudscraper");
+  return withTimeout(
+    cloudscraper({
+      uri: url,
+      method: "GET",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Referer: "https://www3.animeflv.net/",
+        "Cache-Control": "private",
+        Connection: "keep-alive",
+      },
+    })
+  );
+}
+
+/**
+ * Extract anime detail info from an AnimeFLV anime page.
+ * This replaces the broken getAnimeInfo from animeflv-api.
+ */
+export async function scrapeAnimeInfo(
+  animeId: string
+): Promise<AnimeData | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const cheerio = require("cheerio");
+
+    const url = `https://www3.animeflv.net/anime/${animeId}`;
+    const html = await fetchPage(url);
+    const $ = cheerio.load(html);
+
+    // Extract basic info using the same selectors as animeflv-api
+    const title = $(
+      "body > div.Wrapper > div > div > div.Ficha.fchlt > div.Container > h1"
+    )
+      .text()
+      .trim();
+    const statusRaw = $(
+      "body > div.Wrapper > div > div > div.Container > div > aside > p > span"
+    )
+      .text()
+      .trim();
+    const rating = $("#votes_prmd").text().trim();
+    const type = $(
+      "body > div.Wrapper > div > div > div.Ficha.fchlt > div.Container > span"
+    )
+      .text()
+      .trim();
+
+    const coverImg = $(
+      "body > div.Wrapper > div > div > div.Container > div > aside > div.AnimeCover > div > figure > img"
+    );
+    const cover = coverImg.length > 0
+      ? "https://animeflv.net" + coverImg.attr("src")
+      : "";
+
+    const synopsis = $(
+      "body > div.Wrapper > div > div > div.Container > div > main > section:nth-child(1) > div.Description > p"
+    )
+      .text()
+      .trim();
+
+    // Extract genres
+    const genres: string[] = [];
+    $(
+      "body > div.Wrapper > div > div > div.Container > div > main > section:nth-child(1) > nav > a"
+    ).each((_i: number, el: any) => {
+      const genre = $(el).text().trim();
+      if (genre) genres.push(genre);
+    });
+
+    // Extract alternative titles
+    const alternative_titles: string[] = [];
+    $(
+      "body > div.Wrapper > div > div > div.Ficha.fchlt > div.Container > div:nth-child(3) > span"
+    ).each((_i: number, el: any) => {
+      const alt = $(el).text().trim();
+      if (alt) alternative_titles.push(alt);
+    });
+
+    // Extract episodes from script tags
+    let episodeCount = 0;
+    $("script").each((_i: number, el: any) => {
+      const content = $(el).html() || "";
+      if (content.includes("episodes")) {
+        // Try different regex patterns to match the episodes array
+        const match =
+          content.match(/episodes\s*=\s*(\[\[[\s\S]*?\]\])\s*;/) ||
+          content.match(/episodes\s*=\s*(\[[\s\S]*?\])\s*;/) ||
+          content.match(/episodes\s*=\s*(\[[\s\S]*?\])/);
+        if (match && match[1]) {
+          try {
+            const parsed = JSON.parse(match[1]);
+            if (Array.isArray(parsed)) {
+              episodeCount = parsed.length;
+              return false;
+            }
+          } catch {
+            // Try without the last bracket if split across lines
+            try {
+              const cleaned = match[1].replace(/\s*;?\s*$/, "");
+              const parsed = JSON.parse(cleaned);
+              if (Array.isArray(parsed)) {
+                episodeCount = parsed.length;
+                return false;
+              }
+            } catch {
+              // Not parseable, continue
+            }
+          }
+        }
+      }
+    });
+
+    return {
+      title,
+      alternative_titles,
+      status: statusRaw,
+      rating,
+      type,
+      cover,
+      synopsis,
+      genres,
+      episodes: episodeCount,
+      url,
+    };
+  } catch (error) {
+    console.error("Error scraping anime info:", error);
+    return null;
+  }
+}
+
+/**
  * Extract video server data from an AnimeFLV episode page.
  * Uses cloudscraper (same as animeflv-api) to bypass Cloudflare.
  */
@@ -22,25 +159,10 @@ export async function getEpisodeServers(
 ): Promise<EpisodeServers | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const cloudscraper = require("cloudscraper");
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cheerio = require("cheerio");
 
     const url = `https://www3.animeflv.net/ver/${animeId}-${episodeNum}`;
-
-    const html: string = await withTimeout(
-      cloudscraper({
-        uri: url,
-        method: "GET",
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Referer: "https://www3.animeflv.net/",
-          "Cache-Control": "private",
-          Connection: "keep-alive",
-        },
-      })
-    );
+    const html = await fetchPage(url);
 
     const $ = cheerio.load(html);
 

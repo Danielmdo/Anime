@@ -5,6 +5,7 @@ import type {
   AnimeOnAirData,
   FilterOptions,
 } from "./types";
+import { scrapeAnimeInfo } from "./scraper";
 
 const API_TIMEOUT = 8000; // 8 seconds — under Vercel's 10s serverless limit
 
@@ -36,14 +37,18 @@ export async function getLatestEpisodes(): Promise<ChapterData[]> {
 }
 
 export async function getAnimeInfo(animeId: string): Promise<AnimeData | null> {
+  // First try the animeflv-api package
   try {
     const api = getApi();
     const result: AnimeData = await withTimeout(api.getAnimeInfo(animeId));
-    return result || null;
+    if (result) return result;
   } catch (error) {
-    console.error("Error fetching anime info:", error);
-    return null;
+    console.error("animeflv-api getAnimeInfo failed:", error);
   }
+
+  // Fallback: use our own scraper
+  console.log("Falling back to custom scraper for anime:", animeId);
+  return scrapeAnimeInfo(animeId);
 }
 
 export async function searchAnime(
