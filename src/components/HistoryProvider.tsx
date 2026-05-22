@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { HistoryItem } from "@/lib/types";
 
@@ -41,26 +41,32 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     }
   }, [history, loaded]);
 
-  const addToHistory = (item: Omit<HistoryItem, "timestamp">) => {
-    setHistory((prev) => {
-      const filtered = prev.filter(
-        (h) => !(h.animeId === item.animeId && h.episode === item.episode)
-      );
-      return [{ ...item, timestamp: Date.now() }, ...filtered].slice(0, 100);
-    });
-  };
+  const addToHistory = useCallback(
+    (item: Omit<HistoryItem, "timestamp">) => {
+      setHistory((prev) => {
+        const filtered = prev.filter(
+          (h) => !(h.animeId === item.animeId && h.episode === item.episode)
+        );
+        return [{ ...item, timestamp: Date.now() }, ...filtered].slice(0, 100);
+      });
+    },
+    []
+  );
 
-  const clearHistory = () => {
+  const clearHistory = useCallback(() => {
     setHistory([]);
-  };
+  }, []);
 
-  const removeFromHistory = (animeId: string, episode: number) => {
-    setHistory((prev) =>
-      prev.filter(
-        (h) => !(h.animeId === animeId && h.episode === episode)
-      )
-    );
-  };
+  const removeFromHistory = useCallback(
+    (animeId: string, episode: number) => {
+      setHistory((prev) =>
+        prev.filter(
+          (h) => !(h.animeId === animeId && h.episode === episode)
+        )
+      );
+    },
+    []
+  );
 
   return (
     <HistoryContext.Provider

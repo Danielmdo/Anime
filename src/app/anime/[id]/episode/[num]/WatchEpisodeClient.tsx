@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useHistory } from "@/components/HistoryProvider";
-import type { AnimeData } from "@/lib/types";
+import type { AnimeData, VideoServer, EpisodeServers } from "@/lib/types";
 
 interface WatchEpisodeClientProps {
   anime: AnimeData | null;
@@ -22,9 +22,39 @@ export default function WatchEpisodeClient({
   const animeTitle = anime?.title || animeId.replace(/-/g, " ");
   const animeCover = anime?.cover || "";
 
-  // AnimeFLV episode URL
-  const animeflvUrl = `https://www3.animeflv.net/ver/${animeId}-${epNumber}`;
+  // Video servers state
+  const [servers, setServers] = useState<VideoServer[]>([]);
+  const [activeServer, setActiveServer] = useState<VideoServer | null>(null);
+  const [loadingServers, setLoadingServers] = useState(true);
+  const [serversError, setServersError] = useState(false);
 
+  // Fetch video servers
+  const fetchServers = useCallback(async () => {
+    setLoadingServers(true);
+    setServersError(false);
+    try {
+      const res = await fetch(`/api/episode/${animeId}/${epNumber}`);
+      if (!res.ok) throw new Error("Failed to fetch servers");
+      const data: EpisodeServers = await res.json();
+      const availableServers = Object.values(data).flat().filter(Boolean) as VideoServer[];
+      if (availableServers.length > 0) {
+        setServers(availableServers);
+        setActiveServer(availableServers[0]);
+      } else {
+        setServersError(true);
+      }
+    } catch {
+      setServersError(true);
+    } finally {
+      setLoadingServers(false);
+    }
+  }, [animeId, epNumber]);
+
+  useEffect(() => {
+    fetchServers();
+  }, [fetchServers]);
+
+  // Save to history
   useEffect(() => {
     addToHistory({
       animeId,
@@ -54,13 +84,107 @@ export default function WatchEpisodeClient({
           <span className="text-red-400">Episodio {epNumber}</span>
         </nav>
 
-        {/* Watch Hero */}
+        {/* Video Player */}
+        <div className="bg-black rounded-xl overflow-hidden border border-gray-800 mb-4">
+          <div className="relative aspect-video bg-black">
+            {loadingServers ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm">
+                    Cargando servidores de video...
+                  </p>
+                </div>
+              </div>
+            ) : serversError || !activeServer ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center max-w-md px-6">
+                  <svg
+                    className="w-16 h-16 text-gray-700 mx-auto mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <p className="text-gray-400 mb-2 font-medium">
+                    No se pudieron cargar los servidores de video
+                  </p>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Esto puede ocurrir si AnimeFLV está bloqueando la conexión.
+                  </p>
+                  <div className="flex items-center gap-3 justify-center">
+                  <button
+                    onClick={fetchServers}
+                    className="inline-flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all duration-200"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Reintentar
+                  </button>
+                  <a
+                    href={`https://www3.animeflv.net/ver/${animeId}-${epNumber}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all duration-200"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Ver en AnimeFLV
+                  </a>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <iframe
+                src={activeServer.code}
+                className="absolute inset-0 w-full h-full"
+                allowFullScreen
+                allow="autoplay; encrypted-media; fullscreen"
+                referrerPolicy="origin"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Server Selector */}
+        {servers.length > 1 && !loadingServers && !serversError && (
+          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 mb-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">
+                Servidores:
+              </span>
+              {servers.map((server) => (
+                <button
+                  key={server.server}
+                  onClick={() => setActiveServer(server)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    activeServer?.server === server.server
+                      ? "bg-red-600 text-white shadow-lg shadow-red-600/20"
+                      : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 border border-gray-700"
+                  }`}
+                >
+                  {server.title || server.server}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Episode Info Bar */}
         <div className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-xl overflow-hidden border border-gray-800 mb-6">
-          <div className="p-6 sm:p-10 flex flex-col md:flex-row items-center gap-8">
-            {/* Cover (only if available) */}
+          <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            {/* Small Cover */}
             {animeCover ? (
-              <div className="shrink-0 w-36 sm:w-44">
-                <div className="aspect-[3/4] rounded-xl overflow-hidden shadow-xl shadow-black/50 border border-gray-700">
+              <div className="shrink-0 w-16 sm:w-20">
+                <div className="aspect-[3/4] rounded-lg overflow-hidden shadow-lg border border-gray-700">
                   <img
                     src={animeCover}
                     alt={animeTitle}
@@ -68,86 +192,43 @@ export default function WatchEpisodeClient({
                   />
                 </div>
               </div>
-            ) : (
-              <div className="shrink-0 w-36 sm:w-44">
-                <div className="aspect-[3/4] rounded-xl overflow-hidden shadow-xl shadow-black/50 border border-gray-700 bg-gray-800 flex items-center justify-center">
-                  <svg className="w-12 h-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              </div>
-            )}
+            ) : null}
 
-            {/* Info & Watch Button */}
-            <div className="flex-1 text-center md:text-left">
-              <span className="inline-block bg-red-600/90 text-white text-xs font-medium px-2.5 py-0.5 rounded-md mb-3">
+            {/* Info */}
+            <div className="flex-1 text-center sm:text-left">
+              <span className="inline-block bg-red-600/90 text-white text-xs font-medium px-2.5 py-0.5 rounded-md mb-2">
                 Episodio {epNumber}
                 {totalEps > 0 && ` de ${totalEps}`}
               </span>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight mb-2">
+              <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">
                 {animeTitle}
               </h1>
-              <p className="text-gray-400 text-sm mb-6">
-                Este episodio se reproduce en AnimeFLV. Haz clic en el botón
-                para verlo.
-              </p>
-
-              <a
-                href={animeflvUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 bg-red-600 hover:bg-red-500 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-red-600/25 hover:-translate-y-0.5 group"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                <span className="text-lg">Reproducir en AnimeFLV</span>
-                <svg
-                  className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </a>
-
-              <p className="text-xs text-gray-600 mt-4">
-                Se abrirá AnimeFLV en una nueva pestaña
-              </p>
-
-              {!anime && (
-                <p className="text-xs text-yellow-600 mt-3">
-                  No se pudo cargar la información del anime. El enlace
-                  sigue funcionando.
-                </p>
-              )}
             </div>
+
+            {/* Direct link on AnimeFLV */}
+            <a
+              href={`https://www3.animeflv.net/ver/${animeId}-${epNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors border border-gray-700"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              AnimeFLV
+            </a>
           </div>
         </div>
 
-        {/* Episode Info (only if available) */}
+        {/* Synopsis (only if available) */}
         {anime?.synopsis && (
           <div className="bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-800 mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  Sinopsis
-                </h2>
-                <p className="text-gray-300 text-sm leading-relaxed line-clamp-3 hover:line-clamp-none transition-all">
-                  {anime.synopsis || "Sin sinopsis disponible."}
-                </p>
-              </div>
-            </div>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Sinopsis
+            </h2>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {anime.synopsis}
+            </p>
           </div>
         )}
 
@@ -208,16 +289,15 @@ export default function WatchEpisodeClient({
           )}
         </div>
 
-        {/* Episode List (only if we know the total) */}
-        {!anime && (
+        {/* Episode List */}
+        {!anime && totalEps === 0 && (
           <div className="mt-10 pb-12 text-center">
             <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 max-w-lg mx-auto">
               <p className="text-gray-400 mb-4">
-                No se pudo cargar la lista de episodios. Puedes ver este
-                episodio directamente en AnimeFLV.
+                No se pudo cargar la lista de episodios.
               </p>
               <a
-                href={animeflvUrl}
+                href={`https://www3.animeflv.net/ver/${animeId}-${epNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-2 rounded-lg transition-colors border border-gray-700"

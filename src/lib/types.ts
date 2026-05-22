@@ -78,3 +78,17 @@ export const AnimeGenres = [
 
 export const AnimeStatuses = ["En emision", "Finalizado", "Proximamente"] as const;
 export const AnimeTypes = ["OVA", "Anime", "Película", "Especial"] as const;
+
+export interface VideoServer {
+  server: string;
+  title: string;
+  ads: number;
+  allow_mobile: boolean;
+  code: string;
+}
+
+export interface EpisodeServers {
+  LAT?: VideoServer[];
+  SUB?: VideoServer[];
+  [key: string]: VideoServer[] | undefined;
+}
