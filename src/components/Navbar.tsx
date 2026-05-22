@@ -25,8 +25,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <Film className="w-7 h-7 text-red-500" />
-            <span className="text-xl font-bold text-white">
-              Anime<span className="text-red-500">FLV</span>
+            <span className="text-xl font-bold text-white">Danny<span className="text-red-500">FLV</span>
             </span>
           </Link>
 
