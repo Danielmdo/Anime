@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const animeflv = require("animeflv-api");
-
 import type {
   AnimeData,
   ChapterData,
@@ -10,6 +7,12 @@ import type {
 } from "./types";
 
 const API_TIMEOUT = 8000; // 8 seconds — under Vercel's 10s serverless limit
+
+// Lazy load animeflv-api — avoid top-level require that hangs Vercel's build
+function getApi() {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  return require("animeflv-api");
+}
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -23,7 +26,8 @@ async function withTimeout<T>(
 
 export async function getLatestEpisodes(): Promise<ChapterData[]> {
   try {
-    const result: ChapterData[] = await withTimeout(animeflv.getLatest());
+    const api = getApi();
+    const result: ChapterData[] = await withTimeout(api.getLatest());
     return result || [];
   } catch (error) {
     console.error("Error fetching latest episodes:", error);
@@ -33,7 +37,8 @@ export async function getLatestEpisodes(): Promise<ChapterData[]> {
 
 export async function getAnimeInfo(animeId: string): Promise<AnimeData | null> {
   try {
-    const result: AnimeData = await withTimeout(animeflv.getAnimeInfo(animeId));
+    const api = getApi();
+    const result: AnimeData = await withTimeout(api.getAnimeInfo(animeId));
     return result || null;
   } catch (error) {
     console.error("Error fetching anime info:", error);
@@ -45,8 +50,9 @@ export async function searchAnime(
   query: string
 ): Promise<SearchAnimeResults | null> {
   try {
+    const api = getApi();
     const result: SearchAnimeResults = await withTimeout(
-      animeflv.searchAnime(query)
+      api.searchAnime(query)
     );
     return result || null;
   } catch (error) {
@@ -57,7 +63,8 @@ export async function searchAnime(
 
 export async function getOnAir(): Promise<AnimeOnAirData[]> {
   try {
-    const result: AnimeOnAirData[] = await withTimeout(animeflv.getOnAir());
+    const api = getApi();
+    const result: AnimeOnAirData[] = await withTimeout(api.getOnAir());
     return result || [];
   } catch (error) {
     console.error("Error fetching on-air anime:", error);
@@ -69,8 +76,9 @@ export async function searchByFilter(
   opts: FilterOptions
 ): Promise<SearchAnimeResults | null> {
   try {
+    const api = getApi();
     const result: SearchAnimeResults = await withTimeout(
-      animeflv.searchAnimesByFilter(opts)
+      api.searchAnimesByFilter(opts)
     );
     return result || null;
   } catch (error) {
