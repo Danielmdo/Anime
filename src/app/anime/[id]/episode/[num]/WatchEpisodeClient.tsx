@@ -144,7 +144,7 @@ export default function WatchEpisodeClient({
                     No se pudieron cargar los servidores de video
                   </p>
                   <p className="text-gray-600 text-sm mb-4">
-                    Esto puede ocurrir si AnimeFLV está bloqueando la conexión.
+                    Esto puede ocurrir si AnimeV1 está bloqueando la conexión.
                   </p>
                   <div className="flex items-center gap-3 justify-center">
                   <button
@@ -157,7 +157,7 @@ export default function WatchEpisodeClient({
                     Reintentar
                   </button>
                   <a
-                    href={`https://www3.animeflv.net/ver/${animeId}-${epNumber}`}
+                    href={`https://animev1.com/ver/${animeId}-${epNumber}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all duration-200"
@@ -165,7 +165,7 @@ export default function WatchEpisodeClient({
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
-                    Ver en AnimeFLV
+                    Ver en AnimeV1
                   </a>
                   </div>
                 </div>
@@ -251,9 +251,9 @@ export default function WatchEpisodeClient({
               </h1>
             </div>
 
-            {/* Direct link on AnimeFLV */}
+            {/* Direct link on AnimeV1 */}
             <a
-              href={`https://www3.animeflv.net/ver/${animeId}-${epNumber}`}
+              href={`https://animev1.com/ver/${animeId}-${epNumber}`}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors border border-gray-700"
@@ -261,7 +261,7 @@ export default function WatchEpisodeClient({
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
-              AnimeFLV
+              AnimeV1
             </a>
           </div>
         </div>
@@ -343,12 +343,12 @@ export default function WatchEpisodeClient({
                 No se pudo cargar la lista de episodios.
               </p>
               <a
-                href={`https://www3.animeflv.net/ver/${animeId}-${epNumber}`}
+                href={`https://animev1.com/ver/${animeId}-${epNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-2 rounded-lg transition-colors border border-gray-700"
               >
-                Ir a AnimeFLV
+                Ir a AnimeV1
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>

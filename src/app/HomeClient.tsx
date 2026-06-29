@@ -88,7 +88,7 @@ export default function HomeClient({ latest, onAir }: HomeClientProps) {
               Últimos Episodios
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Los episodios más recientes agregados a AnimeFLV
+              Los episodios más recientes agregados a AnimeV1
             </p>
           </div>
         </div>
@@ -156,8 +156,8 @@ export default function HomeClient({ latest, onAir }: HomeClientProps) {
       <footer className="border-t border-gray-800 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-gray-600">
-            AnimeFLV Web - Proyecto educativo. Los datos son obtenidos de
-            AnimeFLV.
+            AnimeV1 - Proyecto educativo. Los datos son obtenidos de
+            AnimeV1.
           </p>
         </div>
       </footer>

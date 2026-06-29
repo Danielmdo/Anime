@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEpisodeServers } from "@/lib/scraper";
+import { getEpisodeServers } from "@/lib/animeflv";
 
 export async function GET(
   _request: NextRequest,

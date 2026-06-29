@@ -31,8 +31,8 @@ export default function AnimeDetailClient({
             {animeTitle}
           </h1>
           <p className="text-gray-400 mb-6">
-            No se pudo cargar la información del anime desde AnimeFLV.
-            Puedes intentar verlo directamente en su sitio.
+          No se pudo cargar la información del anime desde AnimeV1.
+          Puedes intentar verlo directamente en su sitio.
           </p>
           <a
             href={`https://www3.animeflv.net/anime/${animeId}`}
@@ -43,7 +43,7 @@ export default function AnimeDetailClient({
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
-            Ver en AnimeFLV
+            Ver en AnimeV1
           </a>
           <div className="mt-6">
             <a
