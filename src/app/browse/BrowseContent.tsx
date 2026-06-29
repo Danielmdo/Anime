@@ -6,7 +6,7 @@ import Link from "next/link";
 import AnimeCard from "@/components/AnimeCard";
 import { AnimeGenres, AnimeTypes, AnimeStatuses } from "@/lib/types";
 import type { AnimeSearchResult, SearchAnimeResults } from "@/lib/types";
-import { Search, Sliders, X } from "lucide-react";
+import { Search, Sliders, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function BrowseContent() {
   const searchParams = useSearchParams();
@@ -18,6 +18,8 @@ export default function BrowseContent() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(!!initialQuery);
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Filters
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -29,12 +31,14 @@ export default function BrowseContent() {
       if (!searchQuery.trim()) return;
       setLoading(true);
       setSearched(true);
+      setCurrentPage(1);
       try {
         const res = await fetch(
           `/api/search?q=${encodeURIComponent(searchQuery)}`
         );
         const data: SearchAnimeResults = await res.json();
         setResults(data?.data || []);
+        setTotalPages(data?.foundPages || 1);
       } catch (err) {
         console.error("Search failed:", err);
         setResults([]);
@@ -45,7 +49,7 @@ export default function BrowseContent() {
     []
   );
 
-  const performFilter = useCallback(async () => {
+  const performFilter = useCallback(async (page = 1) => {
     setLoading(true);
     setSearched(true);
     try {
@@ -54,10 +58,13 @@ export default function BrowseContent() {
         params.set("genres", selectedGenres.join(","));
       if (selectedType) params.set("types", selectedType);
       if (selectedStatus) params.set("statuses", selectedStatus);
+      params.set("page", String(page));
 
       const res = await fetch(`/api/filter?${params.toString()}`);
       const data: SearchAnimeResults = await res.json();
       setResults(data?.data || []);
+      setTotalPages(data?.foundPages || 1);
+      setCurrentPage(page);
     } catch (err) {
       console.error("Filter failed:", err);
       setResults([]);
@@ -95,7 +102,36 @@ export default function BrowseContent() {
     setSelectedStatus("");
     setResults([]);
     setSearched(false);
+    setCurrentPage(1);
+    setTotalPages(1);
     router.push("/browse");
+  };
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (query.trim()) {
+      performSearch(query.trim());
+    } else {
+      performFilter(page);
+    }
+  };
+
+  // Generate page numbers to show (max 7)
+  const getPageNumbers = (): (number | "ellipsis")[] => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("ellipsis");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
@@ -253,7 +289,7 @@ export default function BrowseContent() {
             </div>
 
             <button
-              onClick={performFilter}
+              onClick={() => performFilter(1)}
               className="mt-4 w-full bg-red-600 hover:bg-red-500 text-white font-medium py-2.5 rounded-lg transition-colors"
             >
               Aplicar Filtros
@@ -273,6 +309,11 @@ export default function BrowseContent() {
                 <p className="text-sm text-gray-500">
                   {results.length} resultado{results.length !== 1 ? "s" : ""}{" "}
                   encontrado{results.length !== 1 ? "s" : ""}
+                  {totalPages > 1 && (
+                    <span className="text-gray-600 ml-2">
+                      — Página {currentPage} de {totalPages}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -280,6 +321,54 @@ export default function BrowseContent() {
                   <AnimeCard key={anime.id} anime={anime} />
                 ))}
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1.5 mt-10 pb-8">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Anterior</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page, idx) =>
+                      page === "ellipsis" ? (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="px-2 py-2 text-gray-600 text-sm"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => goToPage(page)}
+                          className={`min-w-[2.25rem] px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            page === currentPage
+                              ? "bg-red-600 text-white shadow-lg shadow-red-600/20 scale-105"
+                              : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600"
+                  >
+                    <span className="hidden sm:inline">Siguiente</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-20">

@@ -46,6 +46,7 @@ export interface FilterOptions {
   types?: string[];
   genres?: string[];
   statuses?: string[];
+  page?: number;
 }
 
 export interface EpisodeData {

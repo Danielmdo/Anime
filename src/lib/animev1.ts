@@ -495,6 +495,10 @@ export async function searchByFilter(
     // Build URL with filter params where possible
     const params = new URLSearchParams();
 
+    // Page number (animev1 uses ?p=N, 1-based)
+    const page = opts.page || 1;
+    if (page > 1) params.set("p", String(page));
+
     // Map genres to animev1 IDs (first genre only, since animev1 uses single-select)
     if (opts.genres && opts.genres.length > 0) {
       const genreId = getGenreId(opts.genres[0]);
@@ -512,6 +516,20 @@ export async function searchByFilter(
       const statusKey = opts.statuses[0].toLowerCase().replace("ó", "o");
       const statusId = statusMap[statusKey];
       if (statusId) params.set("estado", statusId);
+    }
+
+    // Map types (animev1 uses tipo parameter with text values)
+    if (opts.types && opts.types.length > 0) {
+      const typeMap: Record<string, string> = {
+        anime: "anime",
+        ova: "ova",
+        película: "pelicula",
+        pelicula: "pelicula",
+        especial: "especial",
+      };
+      const typeKey = opts.types[0].toLowerCase();
+      const typeVal = typeMap[typeKey];
+      if (typeVal) params.set("tipo", typeVal);
     }
 
     const qs = params.toString();
@@ -552,10 +570,6 @@ export async function searchByFilter(
         if (!statusMatch) return;
       }
 
-      // If multiple genres requested, we can't filter from the list page
-      // without fetching each anime individually, so we skip genre checking here
-      // and return all results from the server-side filtered page
-
       data.push({
         id,
         title,
@@ -567,10 +581,51 @@ export async function searchByFilter(
       });
     });
 
+    // Parse pagination from the page
+    let previousPage: string | null = null;
+    let nextPage: string | null = null;
+    let foundPages = 1;
+
+    const pageLinks: number[] = [];
+    $("a.page-link[href*='?p=']").each((_i: number, el: any) => {
+      const href = $(el).attr("href") || "";
+      const pageMatch = href.match(/[?&]p=(\d+)/);
+      if (pageMatch) {
+        const p = parseInt(pageMatch[1], 10);
+        if (!isNaN(p) && !pageLinks.includes(p)) {
+          pageLinks.push(p);
+        }
+      }
+    });
+
+    if (pageLinks.length > 0) {
+      foundPages = Math.max(...pageLinks);
+      if (page > 1) previousPage = String(page - 1);
+      if (page < foundPages) nextPage = String(page + 1);
+    } else {
+      // If no pagination found, we might be on the only page
+      const allLinks = $("a.page-link").length;
+      if (allLinks === 0) {
+        foundPages = 1;
+      } else {
+        // Try to find highest page from any href
+        $("a.page-link").each((_i: number, el: any) => {
+          const href = $(el).attr("href") || "";
+          const m = href.match(/[?&]p=(\d+)/);
+          if (m) {
+            const p = parseInt(m[1], 10);
+            if (!isNaN(p) && p > foundPages) foundPages = p;
+          }
+        });
+        if (page > 1) previousPage = String(page - 1);
+        if (page < foundPages) nextPage = String(page + 1);
+      }
+    }
+
     return {
-      previousPage: null,
-      nextPage: null,
-      foundPages: 1,
+      previousPage,
+      nextPage,
+      foundPages,
       data,
     };
   } catch (error) {
