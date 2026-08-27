@@ -14,7 +14,7 @@ import {
   getOnAir as getOnAirV1,
   searchByFilter as filterV1,
   getEpisodeServers as getServersV1,
-} from "./animev1";
+} from "./jkanime";
 
 const API_TIMEOUT = 8000;
 
@@ -35,12 +35,12 @@ async function withTimeout<T>(
 }
 
 export async function getLatestEpisodes(): Promise<ChapterData[]> {
-  // Try animev1 first
+  // Try jkanime first
   try {
     const result = await getLatestV1();
     if (result && result.length > 0) return result;
   } catch (error) {
-    console.error("animev1 getLatestEpisodes failed:", error);
+    console.error("jkanime getLatestEpisodes failed:", error);
   }
 
   // Fallback: animeflv-api
@@ -55,12 +55,12 @@ export async function getLatestEpisodes(): Promise<ChapterData[]> {
 }
 
 export async function getAnimeInfo(animeId: string): Promise<AnimeData | null> {
-  // Try animev1 first
+  // Try jkanime first
   try {
     const result = await getInfoV1(animeId);
     if (result) return result;
   } catch (error) {
-    console.error("animev1 getAnimeInfo failed:", error);
+    console.error("jkanime getAnimeInfo failed:", error);
   }
 
   // Fallback: animeflv-api
@@ -80,12 +80,12 @@ export async function getAnimeInfo(animeId: string): Promise<AnimeData | null> {
 export async function searchAnime(
   query: string
 ): Promise<SearchAnimeResults | null> {
-  // Try animev1 first
+  // Try jkanime first
   try {
     const result = await searchV1(query);
     if (result && result.data && result.data.length > 0) return result;
   } catch (error) {
-    console.error("animev1 searchAnime failed:", error);
+    console.error("jkanime searchAnime failed:", error);
   }
 
   // Fallback: animeflv-api
@@ -102,12 +102,12 @@ export async function searchAnime(
 }
 
 export async function getOnAir(): Promise<AnimeOnAirData[]> {
-  // Try animev1 first
+  // Try jkanime first
   try {
     const result = await getOnAirV1();
     if (result && result.length > 0) return result;
   } catch (error) {
-    console.error("animev1 getOnAir failed:", error);
+    console.error("jkanime getOnAir failed:", error);
   }
 
   // Fallback: animeflv-api
@@ -124,12 +124,12 @@ export async function getOnAir(): Promise<AnimeOnAirData[]> {
 export async function searchByFilter(
   opts: FilterOptions
 ): Promise<SearchAnimeResults | null> {
-  // Try animev1 first
+  // Try jkanime first
   try {
     const result = await filterV1(opts);
     if (result && result.data && result.data.length > 0) return result;
   } catch (error) {
-    console.error("animev1 searchByFilter failed:", error);
+    console.error("jkanime searchByFilter failed:", error);
   }
 
   // Fallback: animeflv-api
@@ -149,12 +149,12 @@ export async function getEpisodeServers(
   animeId: string,
   episodeNum: number
 ): Promise<EpisodeServers | null> {
-  // Try animev1 first
+  // Try jkanime first
   try {
     const result = await getServersV1(animeId, episodeNum);
     if (result) return result;
   } catch (error) {
-    console.error("animev1 getEpisodeServers failed:", error);
+    console.error("jkanime getEpisodeServers failed:", error);
   }
 
   // Fallback: custom scraper
