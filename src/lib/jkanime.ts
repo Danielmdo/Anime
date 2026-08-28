@@ -350,51 +350,29 @@ export async function getLatestEpisodes(): Promise<ChapterData[]> {
 
 export async function getOnAir(): Promise<AnimeOnAirData[]> {
   try {
-    // Try directory page with emision filter
+    // The directorio page renders via JS from `var animes = {...}` embedded JSON
     const html = await fetchPage(`${BASE}/directorio/?estado=emision`);
-    const $ = loadCheerio(html);
 
     const data: AnimeOnAirData[] = [];
 
-    $(".page_directorio .anime__item").each((_i: number, el: any) => {
-      const link = $(el).find(".anime__item__text h5 a");
-      const href = link.attr("href") || "";
-      const slug = extractSlugFromHref(href);
-      const title = link.text().trim();
-      const type = $(el)
-        .find(".anime__item__text ul li.anime")
-        .text()
-        .trim();
-
-      if (!slug || !title) return;
-
-      data.push({
-        title,
-        type: type || "",
-        id: slug,
-        url: `${BASE}/${slug}/`,
-      });
-    });
-
-    // Fallback: try parsing var animes JSON
-    if (data.length === 0) {
-      const match = html.match(/var\s+animes\s*=\s*(\{[\s\S]*?\});\s*(?:var|<)/);
-      if (match) {
-        try {
-          const parsed = JSON.parse(match[1]);
-          if (parsed.data && Array.isArray(parsed.data)) {
-            for (const a of parsed.data.slice(0, 30)) {
-              data.push({
-                title: a.title || "",
-                type: a.tipo || a.type || "",
-                id: a.slug || "",
-                url: a.url || `${BASE}/${a.slug}/`,
-              });
-            }
+    const match = html.match(
+      /var\s+animes\s*=\s*(\{[\s\S]*?\});\s*(?:var|<)/
+    );
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (parsed.data && Array.isArray(parsed.data)) {
+          for (const a of parsed.data.slice(0, 30)) {
+            data.push({
+              title: a.title || "",
+              type: a.tipo || a.type || "",
+              id: a.slug || "",
+              url: a.url || `${BASE}/${a.slug}/`,
+            });
           }
-        } catch {
-          // parse error, skip
         }
+      } catch {
+        // parse error, skip
       }
     }
 
@@ -502,51 +480,53 @@ export async function searchByFilter(
     const url = qs ? `${BASE}/directorio/?${qs}` : `${BASE}/directorio/`;
 
     const html = await fetchPage(url);
-    const $ = loadCheerio(html);
 
     const animeData: AnimeSearchResult[] = [];
+    let lastPage = 1;
+    let currentPage = page;
 
-    $(".page_directorio .anime__item").each((_i: number, el: any) => {
-      const link = $(el).find(".anime__item__text h5 a");
-      const href = link.attr("href") || "";
-      const slug = extractSlugFromHref(href);
-      const title = link.text().trim();
-      const cover = $(el).find(".anime__item__pic").attr("data-setbg") || "";
-      const type = $(el).find(".anime__item__text ul li.anime").text().trim();
+    // The directorio page renders via JS from `var animes = {...}` embedded JSON
+    const match = html.match(
+      /var\s+animes\s*=\s*(\{[\s\S]*?\});\s*(?:var|<)/
+    );
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (parsed.data && Array.isArray(parsed.data)) {
+          lastPage = parsed.last_page || 1;
+          currentPage = parsed.current_page || page;
 
-      if (!slug || !title) return;
+          for (const a of parsed.data) {
+            const slug = a.slug || "";
+            const title = a.title || "";
+            if (!slug || !title) continue;
 
-      animeData.push({
-        id: slug,
-        title,
-        cover,
-        type: type || "",
-        synopsis: "",
-        rating: "",
-        url: `${BASE}/${slug}/`,
-      });
-    });
+            animeData.push({
+              id: slug,
+              title,
+              cover: a.image || "",
+              type: a.tipo || a.type || "",
+              synopsis: a.synopsis || "",
+              rating: "",
+              url: a.url || `${BASE}/${slug}/`,
+            });
+          }
+        }
+      } catch {
+        // parse error
+      }
+    }
 
-    // Build pagination from the page numbers
     let previousPage: string | null = null;
     let nextPage: string | null = null;
-    let foundPages = 1;
 
-    // Check for pagination links
-    const paginationLinks = $(".pagination a, .page-link");
-    paginationLinks.each((_i: number, el: any) => {
-      const text = $(el).text().trim();
-      const num = parseInt(text, 10);
-      if (!isNaN(num) && num > foundPages) foundPages = num;
-    });
-
-    if (page > 1) previousPage = String(page - 1);
-    if (animeData.length >= 24) nextPage = String(page + 1);
+    if (currentPage > 1) previousPage = String(currentPage - 1);
+    if (currentPage < lastPage) nextPage = String(currentPage + 1);
 
     return {
       previousPage,
       nextPage,
-      foundPages,
+      foundPages: lastPage,
       data: animeData,
     };
   } catch (error) {

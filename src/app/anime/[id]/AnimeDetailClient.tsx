@@ -31,11 +31,11 @@ export default function AnimeDetailClient({
             {animeTitle}
           </h1>
           <p className="text-gray-400 mb-6">
-          No se pudo cargar la información del anime desde AnimeV1.
+          No se pudo cargar la información del anime desde JkAnime.
           Puedes intentar verlo directamente en su sitio.
           </p>
           <a
-            href={`https://www3.animeflv.net/anime/${animeId}`}
+            href={`https://jkanime.net/${animeId}/`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-red-600/25"
@@ -43,7 +43,7 @@ export default function AnimeDetailClient({
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
-            Ver en AnimeV1
+            Ver en JkAnime
           </a>
           <div className="mt-6">
             <a

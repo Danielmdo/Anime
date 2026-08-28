@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AnimeV1 - Tu portal de anime en español",
+  title: "JkAnime - Tu portal de anime en español",
   description:
     "Explora los últimos episodios de anime, descubre nuevos animes por género y mantén un registro de tu historial de visualización.",
   keywords: [

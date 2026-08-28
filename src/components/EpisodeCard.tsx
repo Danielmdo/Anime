@@ -10,10 +10,15 @@ interface EpisodeCardProps {
 
 export default function EpisodeCard({ episode, animeId }: EpisodeCardProps) {
   const extractAnimeId = (url: string) => {
+    // animev1 format: /ver/{slug}-{episode}
     const match = url.match(/\/ver\/(.+?)-\d+$/);
     if (match) return match[1];
-    const parts = url.split("/");
-    return parts[parts.length - 1] || "";
+    // jkanime format: jkanime.net/{slug}/{episode}/
+    const jkMatch = url.match(/jkanime\.net\/([a-zA-Z0-9-]+)\/\d+/);
+    if (jkMatch) return jkMatch[1];
+    // Fallback: use non-empty path segments
+    const parts = url.split("/").filter(Boolean);
+    return parts.length >= 2 ? parts[parts.length - 2] : parts[parts.length - 1] || "";
   };
 
   const id = animeId || extractAnimeId(episode.url);
